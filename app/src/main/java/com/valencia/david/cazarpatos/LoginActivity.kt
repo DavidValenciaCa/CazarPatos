@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,10 @@ class LoginActivity : AppCompatActivity() {
     lateinit var buttonLogin: Button
     lateinit var buttonNewUser:Button
     lateinit var mediaPlayer: MediaPlayer
+    /* Lab05 */
+    lateinit var manejadorArchivo: FileHandler
+    lateinit var checkBoxRecordarme: CheckBox
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -28,13 +33,22 @@ class LoginActivity : AppCompatActivity() {
     editTextPassword = findViewById(R.id.editTextPassword)
     buttonLogin = findViewById(R.id.buttonLogin)
     buttonNewUser = findViewById(R.id.buttonNewUser)
+    /* Lab05 */
+    manejadorArchivo = SharedPreferencesManager(this)
+    checkBoxRecordarme = findViewById(R.id.checkBoxRecordarme)
+
+    LeerDatosDePreferencias()
+
     //Eventos clic
     buttonLogin.setOnClickListener {
         val email = editTextEmail.text.toString()
         val clave = editTextPassword.text.toString()
         //Validaciones de datos requeridos y formatos
         if(!validateRequiredData())
-        return@setOnClickListener
+            return@setOnClickListener
+        //Guardar datos en preferencias.
+        GuardarDatosEnPreferencias()
+
         //Si pasa validación de datos requeridos, ir a pantalla principal
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(EXTRA_LOGIN, email)
@@ -71,4 +85,40 @@ private fun validateRequiredData():Boolean{
         mediaPlayer.release()
         super.onDestroy()
     }
+
+    private fun LeerDatosDePreferencias(){
+        val listadoLeido = manejadorArchivo.ReadInformation()
+        if(listadoLeido.first != null){
+            checkBoxRecordarme.isChecked = true
+        }
+        editTextEmail.setText ( listadoLeido.first )
+        editTextPassword.setText ( listadoLeido.second )
+    }
+
+    private fun GuardarDatosEnPreferencias(){
+        val email = editTextEmail.text.toString()
+        val clave = editTextPassword.text.toString()
+        val listadoAGrabar:Pair<String,String>
+        if(checkBoxRecordarme.isChecked){
+            listadoAGrabar = email to clave
+        }
+        else{
+            listadoAGrabar ="" to ""
+        }
+        // Guardar la información en DharedPreference sin encriptar (texto claro)
+        manejadorArchivo.SaveInformation(listadoAGrabar)
+        // Guardar la información encriptada
+        manejadorArchivo = EncriptedSharedPreferencesManager(this)
+        manejadorArchivo.SaveInformation(listadoAGrabar)
+
+        // Guardar la información en archivos internos
+        manejadorArchivo = FileInternalManager(this)
+        manejadorArchivo.SaveInformation(listadoAGrabar)
+
+        // Guardar la información en archivos externos
+        manejadorArchivo = FileExternalManager(this)
+        manejadorArchivo.SaveInformation((listadoAGrabar))
+    }
+
+
 }
